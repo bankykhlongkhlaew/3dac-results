@@ -114,6 +114,35 @@ main{max-width:880px;margin:0 auto;padding:16px}
 .empty{background:var(--paper);border:1px dashed var(--line);border-radius:14px;padding:28px 18px;text-align:center;color:var(--muted);font-size:16px}
 .err{background:#fff1f2;border:1.5px solid #e11d48;color:#9f1239;border-radius:12px;padding:14px;margin-bottom:12px;font-size:16px}
 
+.sumbox{background:#fffbea;border:1.5px solid #e9c46a;border-radius:14px;padding:14px 16px;margin:14px 0}
+.sumbox h3{font-size:18px;font-weight:800;margin-bottom:6px}
+.sumbox ul{padding-left:20px;display:grid;gap:8px;font-size:16px}
+.sumbox small{color:var(--muted);font-size:14px}
+.sumbox .tag{white-space:nowrap;font-size:14px;color:var(--muted)}
+.fine{font-size:13px;color:var(--muted);margin-top:10px}
+.mecard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
+.mc-top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.mc-lbl{font-size:14px;font-weight:700;color:var(--muted)}
+.mc-rank{display:block;font-size:30px;font-weight:800;line-height:1.1}
+.mc-rank small{font-size:16px;color:var(--muted)}
+.mc-pts{text-align:right}.mc-pts b{display:block;font-size:30px;font-weight:800;line-height:1.1}
+.mc-pts span{display:block;font-size:14px;color:var(--muted)}.mc-pts .gap{color:var(--a);font-weight:700}
+.mini{border:1.5px solid var(--ink);background:var(--paper);border-radius:10px;padding:10px;font-size:15px;font-weight:700;cursor:pointer}
+.dh{font-size:17px;font-weight:800;margin:18px 4px 8px}
+.it.weak{background:linear-gradient(90deg,#fff1e8,transparent 60%);margin:0 -14px;padding-left:14px;padding-right:14px}
+.flag{font-size:12px;font-weight:800;color:#fff;background:var(--a);border-radius:6px;padding:1px 6px;vertical-align:2px}
+.gauge{position:relative;height:16px;background:var(--soft);border:1px solid var(--line);border-radius:8px;margin-top:8px}
+.g-fill{position:absolute;left:0;top:0;bottom:0;background:var(--b);border-radius:8px}
+.g-avg{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--ink)}
+.g-best{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--gold);border:2px solid #fff;box-shadow:0 0 0 1px var(--gold)}
+.g-nums{display:flex;justify-content:space-between;gap:8px;font-size:14px;color:var(--muted);margin-top:4px}
+.g-nums b{font-size:18px;color:var(--ink)}
+.g-fl{font-size:13px;color:var(--muted)}
+.up{color:#0a7d38;font-weight:800}.dn{color:#c4102c;font-weight:800}
+.legend{font-size:13px;color:var(--muted);margin:10px 4px 0;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center}
+.lg{display:inline-block;width:14px;height:10px;margin-right:4px;vertical-align:middle}
+.lg-me{background:var(--b);border-radius:3px}.lg-avg{width:3px;height:14px;background:var(--ink)}
+.lg-best{width:10px;height:10px;border-radius:50%;background:var(--gold)}
 @media(max-width:520px){
   .pos{font-size:34px}.row{grid-template-columns:46px 1fr auto}
   .pts b{font-size:22px}.side .big{font-size:30px}
@@ -135,6 +164,7 @@ main{max-width:880px;margin:0 auto;padding:16px}
     </div>
     <div class="views" role="tablist">
       <button class="view" role="tab" aria-selected="true" data-v="rank">อันดับ</button>
+      <button class="view" role="tab" aria-selected="false" data-v="me">ของฉัน</button>
       <button class="view" role="tab" aria-selected="false" data-v="cmp">เปรียบเทียบ</button>
     </div>
   </div>
@@ -148,6 +178,14 @@ main{max-width:880px;margin:0 auto;padding:16px}
     <p class="howto">แตะชื่อนักบินเพื่อเปรียบเทียบคะแนนรายหัวข้อ</p>
     <div id="rank-list"></div>
     <p class="note" id="rank-note"></p>
+  </section>
+
+  <section class="panel" id="p-me">
+    <div class="pickers" style="grid-template-columns:1fr">
+      <div class="pick"><label for="m-pilot">ชื่อนักบิน</label><select id="m-pilot"></select></div>
+    </div>
+    <div class="chips" id="m-chips" style="margin-top:12px"></div>
+    <div id="me-out"></div>
   </section>
 
   <section class="panel" id="p-cmp">
@@ -224,7 +262,7 @@ const ITEMS={
 
 // ═══════════ STATE ═══════════
 let ROWS=[], META={}, PILOTS={};
-let ui={view:'rank',rankClass:'basic',cClass:'basic',cSub:null,cRound:'all',a:'',b:''};
+let ui={view:'rank',rankClass:'basic',cClass:'basic',cSub:null,cRound:'all',a:'',b:'',me:'',meClass:''};
 try{Object.assign(ui,JSON.parse(localStorage.getItem('3dac-results-ui')||'{}'));ui.view='rank';}catch(_){}
 function saveUi(){try{localStorage.setItem('3dac-results-ui',JSON.stringify(ui));}catch(_){}}
 
@@ -462,13 +500,138 @@ function renderCmp(){
     <p class="pen">ตัวเลขรายหัวข้อคือคะแนน 0–10 เฉลี่ยจากกรรมการที่ถูกนำมาคิด ก่อนหัก Penalty · กรอบสีคือฝ่ายที่ได้มากกว่าในหัวข้อนั้น${trimNote}${pens.length?'<br>Penalty: '+pens.join(' · '):''}</p>`;
 }
 
-function render(){ MEMO.clear(); ui.view==='rank'?renderRank():renderCmp(); saveUi(); }
+// ═══════════ RENDER: ของฉัน (วิเคราะห์ตัวเอง) ═══════════
+// ค่าเฉลี่ยรายหัวข้อ (0–10) จากกรรมการที่ถูกนำมาคิด ในเที่ยวที่ระบุ
+function itemAvgFor(cid,sid,pid,rounds){
+  const kept=[]; rounds.forEach(r=>kept.push(...flightInfo(cid,sid,pid,r).kept));
+  const o={};
+  (ITEMS[sid]||[]).forEach(it=>{
+    const v=kept.map(r=>r.raw[it.id]).filter(x=>x!==undefined&&x!==null&&x!==''&&Number(x)>=0).map(Number);
+    o[it.id]=avg(v);
+  });
+  return o;
+}
+const allRounds=sub=>[...Array(sub.rounds)].map((_,i)=>i+1);
+// สถิติทั้ง class ต่อหัวข้อ (เฉลี่ยทุกเที่ยวของแต่ละคน แล้วหาค่าเฉลี่ย/สูงสุด)
+function classItemStats(c,sub){
+  return memo(`cis|${c.id}|${sub.id}`,()=>{
+    const per=pilotsIn(c.id).map(p=>({pid:p,v:itemAvgFor(c.id,sub.id,p,allRounds(sub))}));
+    const st={};
+    (ITEMS[sub.id]||[]).forEach(it=>{
+      const vals=per.map(x=>x.v[it.id]).filter(v=>v!=null);
+      st[it.id]={avg:avg(vals),best:vals.length?Math.max(...vals):null,n:vals.length};
+    });
+    return st;
+  });
+}
+const subShare=(c,sub)=>c.weights?(c.weights[sub.id]||0):1/c.subs.length;
+
+function analyse(c,pid){
+  const findings=[];   // ทุกหัวข้อทุก sub
+  c.subs.forEach(sub=>{
+    const mine=itemAvgFor(c.id,sub.id,pid,allRounds(sub));
+    const r1=itemAvgFor(c.id,sub.id,pid,[1]), r2=itemAvgFor(c.id,sub.id,pid,[2]);
+    const st=classItemStats(c,sub);
+    (ITEMS[sub.id]||[]).forEach(it=>{
+      const m=mine[it.id]; if(m==null) return;
+      const s=st[it.id];
+      // คะแนนที่เสียเทียบคนที่ดีที่สุดในหัวข้อนั้น → แปลงเป็นผลต่อคะแนนรวม /1000 โดยประมาณ
+      const lostRaw=s.best!=null?Math.max(0,s.best-m)/10*it.w:0;
+      const impact=lostRaw/sub.max*1000*subShare(c,sub);
+      findings.push({sub,it,m,avg:s.avg,best:s.best,n:s.n,r1:r1[it.id],r2:r2[it.id],impact,
+        vsAvg:s.avg!=null?m-s.avg:0});
+    });
+  });
+  return findings;
+}
+
+function summaryHtml(c,pid,f){
+  const name=esc(PILOTS[pid]?.name||pid);
+  if(!f.length) return '';
+  const lines=[];
+  const enough=f.some(x=>x.n>=2);
+  const weak=f.filter(x=>x.impact>=0.5).sort((a,b)=>b.impact-a.impact).slice(0,3);
+  if(enough&&weak.length){
+    lines.push(`<li><b>ฝึกก่อน:</b> ${weak.map(x=>`${esc(x.it.name)} <span class="tag">${x.m.toFixed(1)} → ผู้ที่ดีที่สุด ${x.best.toFixed(1)}</span>`).join(', ')}<br><small>ถ้าทำได้เท่าคนที่ดีที่สุดใน 3 หัวข้อนี้ คะแนนรวมจะเพิ่มได้ประมาณ ${weak.reduce((a,x)=>a+x.impact,0).toFixed(0)} คะแนน (/1000)</small></li>`);
+  }
+  const strong=f.filter(x=>x.vsAvg>=0.5).sort((a,b)=>b.vsAvg-a.vsAvg).slice(0,2);
+  if(enough&&strong.length) lines.push(`<li><b>จุดแข็ง:</b> ${strong.map(x=>`${esc(x.it.name)} (สูงกว่าค่าเฉลี่ย ${x.vsAvg.toFixed(1)})`).join(', ')}</li>`);
+  const both=f.filter(x=>x.r1!=null&&x.r2!=null);
+  if(both.length){
+    const up=both.filter(x=>x.r2-x.r1>=1).sort((a,b)=>(b.r2-b.r1)-(a.r2-a.r1)).slice(0,3);
+    const dn=both.filter(x=>x.r1-x.r2>=1).sort((a,b)=>(b.r1-b.r2)-(a.r1-a.r2)).slice(0,3);
+    if(up.length) lines.push(`<li><b>ดีขึ้นในเที่ยว 2:</b> ${up.map(x=>`${esc(x.it.name)} (+${(x.r2-x.r1).toFixed(1)})`).join(', ')}</li>`);
+    if(dn.length) lines.push(`<li><b>ตกลงในเที่ยว 2:</b> ${dn.map(x=>`${esc(x.it.name)} (−${(x.r1-x.r2).toFixed(1)})`).join(', ')} <small>ทำได้ดีกว่านี้แล้วในเที่ยว 1 ลองดูว่าอะไรต่างไป</small></li>`);
+  }
+  c.subs.forEach(sub=>{
+    const fl=subResult(c,sub,pid).flights.filter(x=>x.norm!=null);
+    if(fl.length>=2){
+      const d=Math.max(...fl.map(x=>x.norm))-Math.min(...fl.map(x=>x.norm));
+      if(d>=60) lines.push(`<li><b>ความสม่ำเสมอ${c.subs.length>1?' ('+esc(sub.name)+')':''}:</b> สองเที่ยวต่างกัน ${d.toFixed(0)} คะแนน <small>${c.combine==='best'?'นับเฉพาะเที่ยวที่ดีที่สุดก็จริง แต่ถ้าบินได้สม่ำเสมอจะลดความเสี่ยงที่ทั้งสองเที่ยวออกมาไม่ดี':'เที่ยวที่ทำได้น้อยกว่าดึงค่าเฉลี่ยลง'}</small></li>`);
+    }
+  });
+  const pens=[];
+  c.subs.forEach(sub=>allRounds(sub).forEach(r=>{
+    const fi=flightInfo(c.id,sub.id,pid,r); const p=[...fi.kept,...fi.cut].filter(x=>x.pen>0);
+    if(p.length) pens.push(`${c.subs.length>1?esc(sub.name)+' ':''}เที่ยว ${r} (หัก ${[...new Set(p.map(x=>x.pen))].join('/')}% จากกรรมการ ${p.length} ท่าน)`);
+  }));
+  if(pens.length) lines.push(`<li><b>Penalty:</b> ${pens.join(', ')} <small>เช่น เกินเวลาหรือล้ำ safety line ซึ่งแก้ได้ง่ายที่สุด</small></li>`);
+  if(!enough) lines.push(`<li>ยังมีนักบินใน class นี้ได้คะแนนไม่พอที่จะเทียบ จะวิเคราะห์ได้ละเอียดขึ้นเมื่อมีคะแนนของคนอื่นเข้ามา</li>`);
+  if(!lines.length) lines.push(`<li>คะแนนทุกหัวข้อใกล้เคียงกับผู้ที่ทำได้ดีที่สุดแล้ว รักษามาตรฐานนี้ไว้</li>`);
+  return `<div class="sumbox"><h3>สรุปสำหรับ ${name}</h3><ul>${lines.join('')}</ul>
+    <p class="fine">สรุปนี้คำนวณจากตัวเลขคะแนนเท่านั้น ไม่ใช่ความเห็นของกรรมการ ถ้าอยากรู้รายละเอียดว่าเสียคะแนนเพราะอะไร ควรสอบถามกรรมการโดยตรง</p></div>`;
+}
+
+function renderMe(){
+  const allP=[...new Set(ROWS.map(r=>r.pid))].sort((x,y)=>(PILOTS[x]?.name||'').localeCompare(PILOTS[y]?.name||'','th'));
+  if(!allP.includes(ui.me)) ui.me='';
+  $('m-pilot').innerHTML='<option value="">— เลือกชื่อของคุณ —</option>'+allP.map(p=>`<option value="${esc(p)}" ${p===ui.me?'selected':''}>${esc(PILOTS[p]?.name||p)}</option>`).join('');
+  const out=$('me-out');
+  if(!ui.me){ $('m-chips').innerHTML=''; out.innerHTML=`<div class="empty">เลือกชื่อของคุณด้านบน<br>ระบบจะจำไว้ในเครื่องนี้ ครั้งหน้าเปิดมาจะเห็นคะแนนของคุณทันที</div>`; return; }
+  const mine=CLASSES.filter(c=>pilotsIn(c.id).includes(ui.me));
+  if(!mine.some(c=>c.id===ui.meClass)) ui.meClass=mine[0]?.id;
+  $('m-chips').innerHTML=mine.length>1?mine.map(c=>`<button class="chip" aria-pressed="${c.id===ui.meClass}" data-c="${c.id}">${esc(c.name)}</button>`).join(''):'';
+  const c=CLASSES.find(x=>x.id===ui.meClass);
+  if(!c){ out.innerHTML=`<div class="empty">ยังไม่มีคะแนนของคุณ</div>`; return; }
+
+  const rk=ranking(c); const me=rk.find(x=>x.pid===ui.me); const leader=rk[0];
+  const head=`<div class="mecard">
+    <div class="mc-top"><div><span class="mc-lbl">${esc(c.name)}</span><b class="mc-rank">อันดับ ${me?me.rank:'–'}<small> / ${rk.length}</small></b></div>
+    <div class="mc-pts"><b>${me?me.score.toFixed(1):'–'}</b><span>/ 1000</span>${me&&me.rank>1?`<span class="gap">ตามหลังผู้นำ ${(leader.score-me.score).toFixed(1)}</span>`:''}</div></div>
+    ${c.subs.map(s=>{const sr=subResult(c,s,ui.me);const w=c.weights?` · ${Math.round(c.weights[s.id]*100)}%`:'';
+      return `<div class="strip"><div class="st-h">${esc(s.name)}${w}<em>${sr.score==null?'–':sr.score.toFixed(1)}</em></div><div class="fls">${flightCells(c,s,ui.me)}</div></div>`;}).join('')}
+    ${me&&me.rank>1?`<button class="mini" id="vs-leader" data-p="${esc(leader.pid)}">เปรียบเทียบกับผู้นำ (${esc(PILOTS[leader.pid]?.name||'')}) →</button>`:''}
+  </div>`;
+
+  const f=analyse(c,ui.me);
+  const weakIds=new Set(f.filter(x=>x.impact>=0.5).sort((a,b)=>b.impact-a.impact).slice(0,3).map(x=>x.sub.id+'|'+x.it.id));
+  const detail=c.subs.map(sub=>{
+    const rows=f.filter(x=>x.sub.id===sub.id);
+    if(!rows.length) return '';
+    const unit=sub.type==='imac_seq'?'K':'เต็ม';
+    return `<h3 class="dh">${esc(sub.name)} · รายหัวข้อ</h3><div class="items">${rows.map(x=>{
+      const pos=v=>v==null?null:Math.max(0,Math.min(100,v*10));
+      const trend=x.r1!=null&&x.r2!=null?(x.r2-x.r1>=0.5?`<span class="up">▲ ${(x.r2-x.r1).toFixed(1)}</span>`:x.r1-x.r2>=0.5?`<span class="dn">▼ ${(x.r1-x.r2).toFixed(1)}</span>`:''):'';
+      return `<div class="it ${weakIds.has(sub.id+'|'+x.it.id)?'weak':''}">
+        <div class="it-h"><b>${esc(x.it.name)}${weakIds.has(sub.id+'|'+x.it.id)?' <span class="flag">ควรฝึก</span>':''}</b><span>${sub.type==='smack'||sub.type==='basic3d'?'เต็ม 10':unit+' '+x.it.w}</span></div>
+        <div class="gauge"><div class="g-fill" style="width:${pos(x.m)}%"></div>
+          ${x.avg!=null?`<div class="g-avg" style="left:${pos(x.avg)}%" title="ค่าเฉลี่ย class"></div>`:''}
+          ${x.best!=null?`<div class="g-best" style="left:${pos(x.best)}%" title="สูงสุดใน class"></div>`:''}</div>
+        <div class="g-nums"><span><b>${x.m.toFixed(1)}</b> ของคุณ ${trend}</span><span>เฉลี่ย ${fmt(x.avg,1)} · สูงสุด ${fmt(x.best,1)}</span></div>
+        <div class="g-fl">เที่ยว 1: ${fmt(x.r1,1)} &nbsp;·&nbsp; เที่ยว 2: ${fmt(x.r2,1)}</div>
+      </div>`;}).join('')}</div>`;
+  }).join('');
+
+  out.innerHTML=head+summaryHtml(c,ui.me,f)+`<p class="legend"><span class="lg lg-me"></span>ของคุณ (เฉลี่ยทุกเที่ยว) <span class="lg lg-avg"></span>ค่าเฉลี่ย class <span class="lg lg-best"></span>สูงสุดใน class</p>`+detail;
+}
+
+function render(){ MEMO.clear(); ({rank:renderRank,me:renderMe,cmp:renderCmp})[ui.view](); saveUi(); }
 
 // ═══════════ EVENTS ═══════════
 document.querySelectorAll('.view').forEach(b=>b.onclick=()=>{
   ui.view=b.dataset.v;
   document.querySelectorAll('.view').forEach(x=>x.setAttribute('aria-selected',x===b));
-  $('p-rank').classList.toggle('on',ui.view==='rank'); $('p-cmp').classList.toggle('on',ui.view==='cmp');
+  ['rank','me','cmp'].forEach(v=>$('p-'+v).classList.toggle('on',ui.view===v));
   render();
 });
 $('rank-chips').onclick=e=>{const b=e.target.closest('.chip'); if(!b) return; ui.rankClass=b.dataset.c; render();};
@@ -480,6 +643,11 @@ $('rank-list').onclick=e=>{
   document.querySelector('.view[data-v="cmp"]').click();
 };
 $('rank-list').onkeydown=e=>{ if(e.key==='Enter') e.target.closest('.row')?.click(); };
+$('m-pilot').onchange=e=>{ui.me=e.target.value; render();};
+$('m-chips').onclick=e=>{const b=e.target.closest('.chip'); if(!b) return; ui.meClass=b.dataset.c; render();};
+$('me-out').onclick=e=>{const b=e.target.closest('#vs-leader'); if(!b) return;
+  ui.cClass=ui.meClass; ui.cSub=null; ui.cRound='all'; ui.a=ui.me; ui.b=b.dataset.p;
+  document.querySelector('.view[data-v="cmp"]').click();};
 $('c-class').onchange=e=>{ui.cClass=e.target.value; ui.cSub=null; ui.cRound='all'; render();};
 $('c-sub').onclick=e=>{const b=e.target.closest('button'); if(!b) return; ui.cSub=b.dataset.s; render();};
 $('c-round').onclick=e=>{const b=e.target.closest('button'); if(!b) return; ui.cRound=b.dataset.r==='all'?'all':Number(b.dataset.r); render();};
