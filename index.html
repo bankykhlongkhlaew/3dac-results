@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3DAC 2026 · ผลคะแนนนักบิน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#eef1f5; --paper:#ffffff; --ink:#0f172a; --muted:#475569; --line:#cbd5e1; --soft:#f5f7fa;
+  --sky:#0b5fd6;               /* ฟ้า: ปุ่มและแท็บ */
+  --a:#d9480f; --a-soft:#fff1e8; /* นักบิน A: ส้ม */
+  --b:#1c64b8; --b-soft:#e8f1fc; /* นักบิน B: น้ำเงิน */
+  --gold:#a87400; --silver:#5b6573; --bronze:#94531c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Sarabun',system-ui,sans-serif;background:var(--page);color:var(--ink);font-size:17px;line-height:1.5;
+  font-variant-numeric:tabular-nums;padding-bottom:env(safe-area-inset-bottom)}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+
+/* ── Header ── */
+.top{background:var(--paper);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top)}
+.top-in{max-width:880px;margin:0 auto;padding:14px 16px 0}
+.brand{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-size:26px;font-weight:800;line-height:1.1;letter-spacing:-.3px}
+.brand h1 small{display:block;font-size:15px;font-weight:600;color:var(--muted);letter-spacing:0;margin-top:2px}
+.refresh{border:1.5px solid var(--line);background:var(--paper);border-radius:10px;padding:8px 12px;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap}
+.refresh:active{background:var(--soft)}
+.stamp{font-size:13px;color:var(--muted);text-align:right;margin-top:3px}
+.views{display:flex;gap:4px;margin-top:12px}
+.view{flex:1;border:0;background:none;padding:11px 6px;font-size:18px;font-weight:700;color:var(--muted);border-bottom:4px solid transparent;cursor:pointer}
+.view[aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink)}
+
+main{max-width:880px;margin:0 auto;padding:16px}
+.panel{display:none}.panel.on{display:block}
+
+/* ── Class chips ── */
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1.5px solid var(--line);background:var(--paper);border-radius:999px;padding:9px 16px;font-size:16px;font-weight:700;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+
+.howto{font-size:15px;color:var(--muted);margin:0 2px 12px}
+
+/* ── Ranking ── */
+.board{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.row{display:grid;grid-template-columns:58px 1fr auto;gap:10px 10px;align-items:center;padding:14px 14px 14px 10px;border-top:1px solid var(--line);cursor:pointer;background:var(--paper)}
+.row:first-child{border-top:0}
+.row:active{background:var(--soft)}
+.row.me{background:#fffbea}
+.pos{font-size:40px;font-weight:800;line-height:1;text-align:center;letter-spacing:-1px}
+.r1 .pos{color:var(--gold)}.r2 .pos{color:var(--silver)}.r3 .pos{color:var(--bronze)}
+.who b{display:block;font-size:20px;font-weight:800;line-height:1.2}
+.who span{font-size:14px;color:var(--muted)}
+.detail{grid-column:1/-1;display:grid;gap:8px;padding-left:4px}
+.strip{display:grid;gap:4px}
+.st-h{display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:var(--muted)}
+.st-h em{font-style:normal;color:var(--ink);font-size:16px}
+.fls{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px}
+.fl{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.fl b{display:block;font-size:20px;font-weight:800;line-height:1.2}
+.fl small{display:block;font-size:13px;color:var(--muted);line-height:1.3}
+.fl.cut{background:transparent;border-style:dashed}
+.fl.cut b{text-decoration:line-through;text-decoration-thickness:2px;color:var(--muted)}
+.fl.wait b{color:var(--muted)}
+.pts{text-align:right}
+.pts b{display:block;font-size:26px;font-weight:800;line-height:1.1}
+.pts span{font-size:14px;color:var(--muted)}
+.pts .gap{display:block;font-size:13px;color:var(--a);font-weight:700}
+.note{font-size:14px;color:var(--muted);margin:12px 4px 0}
+
+/* ── Compare ── */
+.pickers{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pick label{display:block;font-size:14px;font-weight:700;color:var(--muted);margin-bottom:4px}
+.pick select{width:100%;padding:11px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--soft);font-size:17px;font-weight:700}
+.pick.pa select{border-color:var(--a);background:var(--a-soft)}
+.pick.pb select{border-color:var(--b);background:var(--b-soft)}
+.pick.full{grid-column:1/-1}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{flex:1;min-width:84px;border:1.5px solid var(--line);background:var(--soft);border-radius:10px;padding:9px 6px;font-size:15px;font-weight:700;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+.duel{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin:16px 0 10px}
+.side{border-radius:14px;padding:14px;color:#fff}
+.side.sa{background:var(--a)}.side.sb{background:var(--b);text-align:right}
+.side .nm{font-size:19px;font-weight:800;line-height:1.2}
+.side .big{font-size:38px;font-weight:800;line-height:1.1;margin-top:6px}
+.side .sm{font-size:14px;opacity:.92}
+.vs{align-self:center;font-weight:800;color:var(--muted);font-size:16px}
+
+.items{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+.it{padding:12px 0;border-top:1px solid var(--line)}
+.it:first-child{border-top:0}
+.it-h{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.it-h b{font-size:17px;font-weight:800}
+.it-h span{font-size:13px;color:var(--muted);white-space:nowrap}
+.bars{display:grid;grid-template-columns:58px 1fr 1fr 58px;align-items:center;gap:6px;margin-top:7px}
+.v{font-size:19px;font-weight:800}
+.v.va{color:var(--a)}.v.vb{color:var(--b);text-align:right}
+.v{white-space:nowrap;padding:2px 4px;border-radius:6px}
+.v.va.win{background:var(--a-soft);box-shadow:inset 0 0 0 2px var(--a)}
+.v.vb.win{background:var(--b-soft);box-shadow:inset 0 0 0 2px var(--b)}
+.track{height:16px;background:var(--soft);border:1px solid var(--line);position:relative;overflow:hidden}
+.track.ta{border-radius:8px 0 0 8px}.track.tb{border-radius:0 8px 8px 0}
+.fill{position:absolute;top:0;bottom:0}
+.ta .fill{right:0;background:var(--a)}.tb .fill{left:0;background:var(--b)}
+.pts-line{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:3px}
+.tally{font-size:16px;font-weight:700;margin:12px 4px}
+.pen{font-size:14px;color:var(--muted);margin:10px 4px 0}
+
+.empty{background:var(--paper);border:1px dashed var(--line);border-radius:14px;padding:28px 18px;text-align:center;color:var(--muted);font-size:16px}
+.err{background:#fff1f2;border:1.5px solid #e11d48;color:#9f1239;border-radius:12px;padding:14px;margin-bottom:12px;font-size:16px}
+
+@media(max-width:520px){
+  .pos{font-size:34px}.row{grid-template-columns:46px 1fr auto}
+  .pts b{font-size:22px}.side .big{font-size:30px}
+  .bars{grid-template-columns:52px 1fr 1fr 52px}
+}
+@media(prefers-reduced-motion:no-preference){.fill{transition:width .35s ease}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>ผลคะแนน 3DAC 2026<small>อัปเดตจากโต๊ะกรรมการ</small></h1>
+      <div>
+        <button class="refresh" id="refresh" onclick="load()">โหลดคะแนนล่าสุด</button>
+        <div class="stamp" id="stamp">กำลังโหลด…</div>
+      </div>
+    </div>
+    <div class="views" role="tablist">
+      <button class="view" role="tab" aria-selected="true" data-v="rank">อันดับ</button>
+      <button class="view" role="tab" aria-selected="false" data-v="cmp">เปรียบเทียบ</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="error"></div>
+
+  <section class="panel on" id="p-rank">
+    <div class="chips" id="rank-chips"></div>
+    <p class="howto">แตะชื่อนักบินเพื่อเปรียบเทียบคะแนนรายหัวข้อ</p>
+    <div id="rank-list"></div>
+    <p class="note" id="rank-note"></p>
+  </section>
+
+  <section class="panel" id="p-cmp">
+    <div class="pickers">
+      <div class="pick full">
+        <label for="c-class">ประเภท</label>
+        <select id="c-class"></select>
+      </div>
+      <div class="pick full" id="c-sub-wrap">
+        <label>หัวข้อที่ดู</label>
+        <div class="seg" id="c-sub"></div>
+      </div>
+      <div class="pick full">
+        <label>เที่ยวบิน</label>
+        <div class="seg" id="c-round"></div>
+      </div>
+      <div class="pick pa">
+        <label for="c-a">นักบิน A</label>
+        <select id="c-a"></select>
+      </div>
+      <div class="pick pb">
+        <label for="c-b">นักบิน B</label>
+        <select id="c-b"></select>
+      </div>
+    </div>
+    <div id="cmp-out"></div>
+  </section>
+</main>
+
+<script>
+// ═══════════ CONFIG (สูตรคะแนนต้องตรงกับ Live Score) ═══════════
+// Read-only API (ReadOnly.gs) — อ่านคะแนนได้อย่างเดียว
+const WEB_APP_URL='https://script.google.com/macros/s/AKfycbwz2lCZjJht05h9nHFthzlFjq-GArXfs0xY_N2ibebX4ldSzRhiIt3SmcQtCuALZsKY/exec';
+const AUTO_REFRESH_MS=60000;
+
+const CLASSES=[
+  {id:'basic',name:'Basic Class',combine:'avg',subs:[
+    {id:'basic_imac',name:'IMAC Basic',rounds:2,type:'imac_seq',max:141},
+    {id:'basic_3d',name:'3D ท่าบังคับ',rounds:2,type:'basic3d',max:80}]},
+  {id:'sportman',name:'IMAC Sportsman',combine:'single',subs:[
+    {id:'sportman_s',name:'IMAC Sportsman',rounds:2,type:'imac_seq',max:234}]},
+  {id:'inter',name:'IMAC Intermediate',combine:'single',subs:[
+    {id:'inter_s',name:'IMAC Intermediate',rounds:2,type:'imac_seq',max:303}]},
+  {id:'class3d',name:'3D Class',combine:'best',weights:{c3d_aero:0.7,c3d_smack:0.3},subs:[
+    {id:'c3d_aero',name:'Aeromusical',rounds:2,type:'aero',max:120},
+    {id:'c3d_smack',name:'Smack',rounds:2,type:'smack',max:10}]}
+];
+const ITEMS={
+  basic_3d:[
+    {id:'m1',name:'Harrier',w:10},{id:'m2',name:'Hover',w:10},{id:'m3',name:'Knife-Edge Spin (10 รอบ)',w:10},
+    {id:'m4',name:'Pop Top',w:10},{id:'m5',name:'Blender → Flat Spin',w:10},{id:'m6',name:'Knife Edge High Alpha',w:10},
+    {id:'m7',name:'Knife Edge → Snap → Knife Edge',w:10},{id:'m8',name:'Crankshaft / Flip-Out',w:10}],
+  basic_imac:[
+    {id:'f1',name:'Loop',w:10},{id:'f2',name:'Reverse Half Cuban',w:16},{id:'f3',name:'Roll',w:10},
+    {id:'f4',name:'Immelmann',w:10},{id:'f5',name:'45 Downline',w:7},{id:'f6',name:'Hammerhead',w:17},
+    {id:'f7',name:'Humpty Bump',w:25},{id:'f8',name:'Vertical Upline',w:18},{id:'f9',name:'Down Sharks Tooth Spin',w:18},
+    {id:'f10',name:'Split S',w:10}],
+  sportman_s:[
+    {id:'f1',name:'Q Loop',w:19},{id:'f2',name:'Bow Tie',w:30},{id:'f3',name:'Down Humpty',w:31},
+    {id:'f4',name:'Split S',w:21},{id:'f5',name:'Hammer Head',w:30},{id:'f6',name:'Goldfish',w:21},
+    {id:'f7',name:'Down Humpty Bump',w:17},{id:'f8',name:'Down Sharks Tooth',w:27},{id:'f9',name:'180° Inverted Aero Turn',w:5},
+    {id:'f10',name:'Down Fig N',w:33}],
+  inter_s:[
+    {id:'f1',name:'Fig N',w:25},{id:'f2',name:'Laydown Humpty',w:30},{id:'f3',name:'Half Reverse Cuban',w:34},
+    {id:'f4',name:'Spin',w:19},{id:'f5',name:'Hammerhead',w:42},{id:'f6',name:'Q Loop',w:42},
+    {id:'f7',name:'Double Humpty',w:42},{id:'f8',name:'Vertical Downline',w:16},{id:'f9',name:'Reverse Laydown Humpty',w:38},
+    {id:'f10',name:'90° Roller',w:15}],
+  c3d_aero:[
+    {id:'flightarea',name:'Use of total flight area',w:20},{id:'risk',name:'Level of risk',w:10},
+    {id:'complexity',name:'Original and Complexity',w:10},{id:'precision',name:'Precision',w:20},
+    {id:'artistic',name:'Artistic impression & presentation',w:30},{id:'choreo',name:'Choreography',w:30}],
+  c3d_smack:[{id:'wow',name:'Wow Factor',w:10}]
+};
+
+// ═══════════ STATE ═══════════
+let ROWS=[], META={}, PILOTS={};
+let ui={view:'rank',rankClass:'basic',cClass:'basic',cSub:null,cRound:'all',a:'',b:''};
+try{Object.assign(ui,JSON.parse(localStorage.getItem('3dac-results-ui')||'{}'));ui.view='rank';}catch(_){}
+function saveUi(){try{localStorage.setItem('3dac-results-ui',JSON.stringify(ui));}catch(_){}}
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const fmt=(v,d=2)=>v==null?'–':Number(v).toFixed(d);
+
+// ═══════════ LOAD (JSONP) ═══════════
+let seq=0;
+function jsonp(action){
+  return new Promise((res,rej)=>{
+    const cb='_r'+(seq++), s=document.createElement('script');
+    const done=()=>{delete window[cb];s.remove();};
+    const t=setTimeout(()=>{done();rej(new Error('timeout'));},15000);
+    window[cb]=d=>{clearTimeout(t);done();res(d);};
+    s.onerror=()=>{clearTimeout(t);done();rej(new Error('network'));};
+    s.src=`${WEB_APP_URL}?action=${action}&callback=${cb}&t=${Date.now()}`;
+    document.head.appendChild(s);
+  });
+}
+
+async function load(){
+  $('refresh').disabled=true; $('stamp').textContent='กำลังโหลด…';
+  try{
+    const [all,meta]=await Promise.all([jsonp('getAll'),jsonp('getMeta')]);
+    META=(meta&&meta.config)||{};
+    ROWS=(all.rows||[]).map(r=>{
+      let raw={}; try{raw=typeof r.RawJSON==='string'?JSON.parse(r.RawJSON||'{}'):(r.RawJSON||{});}catch(_){}
+      return {cls:String(r.Class),sub:String(r.SubClass),round:Number(r.Round)||1,
+        judge:String(r.JudgeOrPairID),pid:String(r.PilotID),pname:String(r.PilotName||''),
+        type:String(r.ScoreType),raw,rawScore:Number(r.RawScore)||0,pen:Number(r.PenaltyPct)||0,
+        final:Number(r.FinalScore)||0};
+    });
+    PILOTS={};
+    (META.pilots||[]).forEach(p=>PILOTS[p.id]={name:p.name,plane:p.plane||''});
+    ROWS.forEach(r=>{ if(!PILOTS[r.pid]) PILOTS[r.pid]={name:r.pname||r.pid,plane:''}; });
+    $('error').innerHTML='';
+    const d=new Date();
+    $('stamp').textContent=`อัปเดตเมื่อ ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} น.`;
+    render();
+  }catch(e){
+    $('error').innerHTML=`<div class="err">โหลดคะแนนไม่สำเร็จ ตรวจสอบสัญญาณอินเทอร์เน็ต แล้วกด “โหลดคะแนนล่าสุด” อีกครั้ง</div>`;
+    $('stamp').textContent='โหลดไม่สำเร็จ';
+  }finally{ $('refresh').disabled=false; }
+}
+
+// ═══════════ SCORING (ตรงกับ Scoreboard ใน Live Score) ═══════════
+// 1) คะแนนเที่ยวบิน = เฉลี่ยกรรมการหลังหัก penalty
+//    กรรมการ ≥5 ท่าน → ตัดคะแนนสูงสุดและต่ำสุดออก · Aeromusical = รวม 3 คู่
+// 2) ปรับเป็นสเกล 1000 ต่อเที่ยวบิน (คนที่ดีที่สุดในเที่ยวนั้น = 1000)
+// 3) Basic/IMAC เฉลี่ยทุกเที่ยว · 3D Class เที่ยวที่ดีที่สุด, Aero 70% + Smack 30%
+const TRIM_MIN_JUDGES=5;
+const isAero=sid=>sid==='c3d_aero';
+const MEMO=new Map();
+const memo=(k,f)=>{ if(!MEMO.has(k)) MEMO.set(k,f()); return MEMO.get(k); };
+const rowsOf=(cid,sid,pid)=>ROWS.filter(r=>r.cls===cid&&r.sub===sid&&r.pid===pid);
+function pilotsIn(cid){ return [...new Set(ROWS.filter(r=>r.cls===cid).map(r=>r.pid))]; }
+
+// แถวกรรมการที่ใช้คิดคะแนนเที่ยวนั้น (หลังตัดสูงสุด/ต่ำสุดเมื่อมี ≥5 ท่าน)
+function flightInfo(cid,sid,pid,round){
+  return memo(`fi|${cid}|${sid}|${pid}|${round}`,()=>{
+    const all=rowsOf(cid,sid,pid).filter(r=>r.round===round);
+    if(!all.length) return {raw:null,kept:[],cut:[],n:0};
+    if(isAero(sid)) return {raw:all.reduce((a,r)=>a+r.final,0),kept:all,cut:[],n:all.length};
+    let kept=all,cut=[];
+    if(all.length>=TRIM_MIN_JUDGES){
+      const s=[...all].sort((a,b)=>a.final-b.final);
+      cut=[s[0],s[s.length-1]]; kept=s.slice(1,-1);
+    }
+    return {raw:avg(kept.map(r=>r.final)),kept,cut,n:all.length};
+  });
+}
+const flightRaw=(cid,sid,pid,r)=>flightInfo(cid,sid,pid,r).raw;
+function flightTop(cid,sid,r){ return memo(`top|${cid}|${sid}|${r}`,()=>Math.max(0,...pilotsIn(cid).map(p=>flightRaw(cid,sid,p,r)??0))); }
+function flightNorm(cid,sid,pid,r){ const v=flightRaw(cid,sid,pid,r); if(v==null) return null; const t=flightTop(cid,sid,r); return t>0?v/t*1000:0; }
+function flightRank(cid,sid,pid,r){
+  const v=flightRaw(cid,sid,pid,r); if(v==null) return null;
+  return 1+pilotsIn(cid).filter(p=>(flightRaw(cid,sid,p,r)??-1)>v+1e-9).length;
+}
+function flightCount(cid,sid,r){ return pilotsIn(cid).filter(p=>flightRaw(cid,sid,p,r)!=null).length; }
+function subResult(c,sub,pid){
+  return memo(`sr|${c.id}|${sub.id}|${pid}`,()=>{
+    const flights=[];
+    for(let r=1;r<=sub.rounds;r++) flights.push({round:r,norm:flightNorm(c.id,sub.id,pid,r),rank:flightRank(c.id,sub.id,pid,r),of:flightCount(c.id,sub.id,r),dropped:false});
+    const flown=flights.filter(f=>f.norm!=null);
+    if(!flown.length) return {score:null,flights,best:null};
+    if(c.combine==='best'){
+      const best=flown.reduce((a,b)=>b.norm>a.norm?b:a);
+      flown.forEach(f=>{ if(f!==best) f.dropped=true; });
+      return {score:best.norm,flights,best:best.round};
+    }
+    return {score:avg(flown.map(f=>f.norm)),flights,best:null};
+  });
+}
+function classScore(c,pid){
+  const subs=c.subs.map(s=>subResult(c,s,pid).score);
+  if(subs.every(v=>v==null)) return null;
+  if(c.weights) return c.subs.reduce((a,s,i)=>a+(c.weights[s.id]||0)*(subs[i]??0),0);
+  return avg(subs.filter(v=>v!=null));
+}
+function ranking(c){
+  const list=pilotsIn(c.id).map(pid=>({pid,score:classScore(c,pid)})).filter(x=>x.score!=null);
+  list.sort((x,y)=>y.score-x.score);
+  list.forEach((x,i)=>{x.rank=(i>0&&Math.abs(x.score-list[i-1].score)<1e-9)?list[i-1].rank:i+1;});
+  return list;
+}
+
+// ═══════════ RENDER: RANKING ═══════════
+function flightCells(c,sub,pid){
+  return subResult(c,sub,pid).flights.map(f=>f.norm==null
+    ?`<div class="fl wait"><b>–</b><small>เที่ยว ${f.round} · ยังไม่บิน</small></div>`
+    :`<div class="fl ${f.dropped?'cut':''}"><b>${f.norm.toFixed(1)}</b><small>เที่ยว ${f.round} · อันดับ ${f.rank}/${f.of}</small></div>`).join('');
+}
+function renderRank(){
+  $('rank-chips').innerHTML=CLASSES.map(c=>`<button class="chip" aria-pressed="${ui.rankClass===c.id}" data-c="${c.id}">${esc(c.name)}</button>`).join('');
+  const c=CLASSES.find(x=>x.id===ui.rankClass)||CLASSES[0];
+  const list=ranking(c);
+  if(!list.length){ $('rank-list').innerHTML=`<div class="empty">ยังไม่มีคะแนนใน ${esc(c.name)}<br>คะแนนจะขึ้นที่นี่ทันทีที่กรรมการส่งเที่ยวบินแรก</div>`; $('rank-note').textContent=''; return; }
+  const top=list[0].score;
+  $('rank-list').innerHTML=`<div class="board">${list.map(x=>{
+    const p=PILOTS[x.pid]||{name:x.pid};
+    const strip=c.subs.map(s=>{
+      const sr=subResult(c,s,x.pid);
+      const w=c.weights?` · ${Math.round(c.weights[s.id]*100)}%`:'';
+      return `<div class="strip"><div class="st-h">${esc(s.name)}${w}<em>${sr.score==null?'–':sr.score.toFixed(1)}</em></div><div class="fls">${flightCells(c,s,x.pid)}</div></div>`;
+    }).join('');
+    const gap=x.rank>1?`<span class="gap">ตามหลัง ${(top-x.score).toFixed(1)}</span>`:'';
+    return `<div class="row r${x.rank} ${x.pid===ui.a?'me':''}" data-p="${esc(x.pid)}" role="button" tabindex="0">
+      <div class="pos">${x.rank}</div>
+      <div class="who"><b>${esc(p.name)}</b>${p.plane?`<span>${esc(p.plane)}</span>`:''}</div>
+      <div class="pts"><b>${x.score.toFixed(1)}</b><span>/ 1000</span>${gap}</div>
+      <div class="detail">${strip}</div>
+    </div>`;}).join('')}</div>`;
+  const base='ทุกเที่ยวบินปรับเป็นสเกล 1000 (คนที่ดีที่สุดในเที่ยวนั้น = 1000) · กรรมการ 5 ท่านขึ้นไป ตัดคะแนนสูงสุดและต่ำสุดออก';
+  $('rank-note').textContent= c.weights
+    ? `คะแนนรวม = เที่ยวที่ดีที่สุดของ Aeromusical 70% + Smack 30% · เที่ยวที่ขีดฆ่าคือเที่ยวที่ไม่ได้นำมาคิด · ${base}`
+    : c.subs.length>1
+      ? `คะแนนรวม = เฉลี่ยทุกเที่ยวของ IMAC Basic และ 3D ท่าบังคับ (น้ำหนักเท่ากัน) · ${base}`
+      : `คะแนนรวม = เฉลี่ยทุกเที่ยวบิน · ${base}`;
+}
+
+// ═══════════ RENDER: COMPARE ═══════════
+// ค่าเฉลี่ยรายหัวข้อ (0–10) จากกรรมการที่ถูกนำมาคิดคะแนน
+function itemValues(cid,sid,pid,roundSel){
+  const sub=CLASSES.find(c=>c.id===cid).subs.find(s=>s.id===sid);
+  const rounds=roundSel==='all'?[...Array(sub.rounds)].map((_,i)=>i+1):[roundSel];
+  const kept=[],all=[];
+  rounds.forEach(r=>{const fi=flightInfo(cid,sid,pid,r); kept.push(...fi.kept); all.push(...fi.kept,...fi.cut);});
+  const vals={};
+  (ITEMS[sid]||[]).forEach(it=>{
+    const v=kept.map(r=>r.raw[it.id]).filter(x=>x!==undefined&&x!==null&&x!==''&&Number(x)>=0).map(Number);
+    vals[it.id]=avg(v);
+  });
+  return {vals,rows:all,cut:rounds.reduce((a,r)=>a+flightInfo(cid,sid,pid,r).cut.length,0)};
+}
+function totalFor(c,sub,pid,roundSel){
+  return roundSel==='all'?subResult(c,sub,pid).score:flightNorm(c.id,sub.id,pid,roundSel);
+}
+
+function renderCmpControls(){
+  $('c-class').innerHTML=CLASSES.map(c=>`<option value="${c.id}" ${c.id===ui.cClass?'selected':''}>${esc(c.name)}</option>`).join('');
+  const c=CLASSES.find(x=>x.id===ui.cClass)||CLASSES[0];
+  if(!c.subs.some(s=>s.id===ui.cSub)) ui.cSub=c.subs[0].id;
+  $('c-sub-wrap').style.display=c.subs.length>1?'':'none';
+  $('c-sub').innerHTML=c.subs.map(s=>`<button data-s="${s.id}" aria-pressed="${s.id===ui.cSub}">${esc(s.name)}</button>`).join('');
+  const sub=c.subs.find(s=>s.id===ui.cSub);
+  const allLabel=c.combine==='best'?'เที่ยวที่ดีที่สุด':'เฉลี่ยทุกเที่ยว';
+  const opts=[['all',allLabel]]; for(let r=1;r<=sub.rounds;r++) opts.push([r,`เที่ยวที่ ${r}`]);
+  if(ui.cRound!=='all'&&ui.cRound>sub.rounds) ui.cRound='all';
+  $('c-round').innerHTML=opts.map(([v,l])=>`<button data-r="${v}" aria-pressed="${String(v)===String(ui.cRound)}">${l}</button>`).join('');
+  const ps=pilotsIn(c.id).sort((x,y)=>(PILOTS[x]?.name||'').localeCompare(PILOTS[y]?.name||'','th'));
+  const opt=sel=>'<option value="">— เลือกนักบิน —</option>'+ps.map(pid=>`<option value="${esc(pid)}" ${pid===sel?'selected':''}>${esc(PILOTS[pid]?.name||pid)}</option>`).join('');
+  if(!ps.includes(ui.a)) ui.a=''; if(!ps.includes(ui.b)) ui.b='';
+  $('c-a').innerHTML=opt(ui.a); $('c-b').innerHTML=opt(ui.b);
+}
+
+function renderCmp(){
+  renderCmpControls();
+  const c=CLASSES.find(x=>x.id===ui.cClass)||CLASSES[0];
+  const sub=c.subs.find(s=>s.id===ui.cSub);
+  const out=$('cmp-out');
+  if(!pilotsIn(c.id).length){ out.innerHTML=`<div class="empty" style="margin-top:14px">ยังไม่มีคะแนนใน ${esc(c.name)}</div>`; return; }
+  if(!ui.a||!ui.b){ out.innerHTML=`<div class="empty" style="margin-top:14px">เลือกนักบิน A และนักบิน B<br>เพื่อดูคะแนนรายหัวข้อเทียบกัน</div>`; return; }
+  if(ui.a===ui.b){ out.innerHTML=`<div class="empty" style="margin-top:14px">เลือกนักบินคนละคนกัน</div>`; return; }
+
+  const rSel=pid=>ui.cRound!=='all'?ui.cRound:(c.combine==='best'?(subResult(c,sub,pid).best||'all'):'all');
+  const ra=rSel(ui.a), rb=rSel(ui.b);
+  const A=itemValues(c.id,sub.id,ui.a,ra), B=itemValues(c.id,sub.id,ui.b,rb);
+  const tA=totalFor(c,sub,ui.a,ui.cRound), tB=totalFor(c,sub,ui.b,ui.cRound);
+  const pa=PILOTS[ui.a]||{name:ui.a}, pb=PILOTS[ui.b]||{name:ui.b};
+  const sideSub=(pid,r)=>{
+    if(r==='all') return `${esc(sub.name)} · เฉลี่ยทุกเที่ยว`;
+    const rk=flightRank(c.id,sub.id,pid,r);
+    return `${esc(sub.name)} · เที่ยวที่ ${r}${rk?` · อันดับ ${rk}/${flightCount(c.id,sub.id,r)}`:''}`;
+  };
+
+  let winsA=0,winsB=0;
+  const items=(ITEMS[sub.id]||[]).map(it=>{
+    const va=A.vals[it.id], vb=B.vals[it.id];
+    const wa=va!=null&&vb!=null&&va>vb, wb=va!=null&&vb!=null&&vb>va;
+    if(wa) winsA++; if(wb) winsB++;
+    const ptsA=va==null?null:va/10*it.w, ptsB=vb==null?null:vb/10*it.w;
+    const showPts=sub.type==='imac_seq'||sub.type==='aero';
+    return `<div class="it">
+      <div class="it-h"><b>${esc(it.name)}</b><span>${sub.type==='imac_seq'?`K ${it.w}`:sub.type==='aero'?`เต็ม ${it.w}`:'เต็ม 10'}</span></div>
+      <div class="bars">
+        <div class="v va ${wa?'win':''}">${fmt(va,1)}</div>
+        <div class="track ta"><div class="fill" style="width:${(va||0)*10}%"></div></div>
+        <div class="track tb"><div class="fill" style="width:${(vb||0)*10}%"></div></div>
+        <div class="v vb ${wb?'win':''}">${fmt(vb,1)}</div>
+      </div>
+      ${showPts?`<div class="pts-line"><span>${ptsA==null?'':fmt(ptsA,1)+' คะแนน'}</span><span>${ptsB==null?'':fmt(ptsB,1)+' คะแนน'}</span></div>`:''}
+    </div>`;
+  }).join('');
+
+  const penText=(rows,name)=>{
+    const byR={}; rows.forEach(r=>{ if(r.pen>0) (byR[r.round]=byR[r.round]||new Set()).add(r.pen); });
+    const parts=Object.entries(byR).map(([r,s])=>`เที่ยวที่ ${r} หัก ${[...s].join('/')}%`);
+    return parts.length?`${esc(name)}: ${parts.join(', ')}`:'';
+  };
+  const pens=[penText(A.rows,pa.name),penText(B.rows,pb.name)].filter(Boolean);
+  const scopeLabel=ui.cRound==='all'?(c.combine==='best'?'เที่ยวที่ดีที่สุด':'เฉลี่ยทุกเที่ยว'):`เที่ยวที่ ${ui.cRound}`;
+  const lead=tA!=null&&tB!=null?(tA>tB?`${esc(pa.name)} นำ ${(tA-tB).toFixed(1)}`:tB>tA?`${esc(pb.name)} นำ ${(tB-tA).toFixed(1)}`:'คะแนนเท่ากัน'):'ข้อมูลยังไม่ครบทั้งสองคน';
+  const trimNote=(A.cut||B.cut)?' · มีการตัดคะแนนกรรมการสูงสุด/ต่ำสุดออกแล้ว':'';
+
+  out.innerHTML=`
+    <div class="duel">
+      <div class="side sa"><div class="nm">${esc(pa.name)}</div><div class="big">${tA==null?'–':tA.toFixed(1)}</div><div class="sm">${sideSub(ui.a,ra)}</div></div>
+      <div class="vs">vs</div>
+      <div class="side sb"><div class="nm">${esc(pb.name)}</div><div class="big">${tB==null?'–':tB.toFixed(1)}</div><div class="sm">${sideSub(ui.b,rb)}</div></div>
+    </div>
+    <p class="tally">${lead} · ${scopeLabel} (/1000) · ชนะรายหัวข้อ ${winsA} : ${winsB}</p>
+    <div class="items">${items}</div>
+    <p class="pen">ตัวเลขรายหัวข้อคือคะแนน 0–10 เฉลี่ยจากกรรมการที่ถูกนำมาคิด ก่อนหัก Penalty · กรอบสีคือฝ่ายที่ได้มากกว่าในหัวข้อนั้น${trimNote}${pens.length?'<br>Penalty: '+pens.join(' · '):''}</p>`;
+}
+
+function render(){ MEMO.clear(); ui.view==='rank'?renderRank():renderCmp(); saveUi(); }
+
+// ═══════════ EVENTS ═══════════
+document.querySelectorAll('.view').forEach(b=>b.onclick=()=>{
+  ui.view=b.dataset.v;
+  document.querySelectorAll('.view').forEach(x=>x.setAttribute('aria-selected',x===b));
+  $('p-rank').classList.toggle('on',ui.view==='rank'); $('p-cmp').classList.toggle('on',ui.view==='cmp');
+  render();
+});
+$('rank-chips').onclick=e=>{const b=e.target.closest('.chip'); if(!b) return; ui.rankClass=b.dataset.c; render();};
+$('rank-list').onclick=e=>{
+  const r=e.target.closest('.row'); if(!r) return;
+  ui.cClass=ui.rankClass; const pid=r.dataset.p;
+  if(!ui.a||ui.a===pid) ui.a=pid; else if(ui.b!==pid) ui.b=pid;
+  if(ui.a===ui.b) ui.b='';
+  document.querySelector('.view[data-v="cmp"]').click();
+};
+$('rank-list').onkeydown=e=>{ if(e.key==='Enter') e.target.closest('.row')?.click(); };
+$('c-class').onchange=e=>{ui.cClass=e.target.value; ui.cSub=null; ui.cRound='all'; render();};
+$('c-sub').onclick=e=>{const b=e.target.closest('button'); if(!b) return; ui.cSub=b.dataset.s; render();};
+$('c-round').onclick=e=>{const b=e.target.closest('button'); if(!b) return; ui.cRound=b.dataset.r==='all'?'all':Number(b.dataset.r); render();};
+$('c-a').onchange=e=>{ui.a=e.target.value; render();};
+$('c-b').onchange=e=>{ui.b=e.target.value; render();};
+
+load();
+setInterval(()=>{ if(!document.hidden) load(); },AUTO_REFRESH_MS);
+</script>
+</body>
+</html>
